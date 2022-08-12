@@ -17,20 +17,18 @@ public class BNodeGeneric<T extends<Comparable<T>>{
     }
 
     // Find the first location index equal to or greater than key
-    public int findKey(int key){
-
+    public int findKey(T key){
         int idx = 0;
         // The conditions for exiting the loop are: 1.idx == num, i.e. scan all of them once
         // 2. IDX < num, i.e. key found or greater than key
-        while (idx < num && keys.elementAt(idx) < key)
+        while (idx < num && keys.elementAt(idx).compareTo(key)<0)
             ++idx;
         return idx;
     }
 
+    public void remove(T key){
 
-    public void remove(int key){
-
-        int idx = findKey(key);
+        T idx = findKey(key);
         if (idx < num && keys.elementAt(idx) == key){ // Find key
             if (isLeaf) // key in leaf node
                 removeFromLeaf(idx);
@@ -72,7 +70,7 @@ public class BNodeGeneric<T extends<Comparable<T>>{
 
     public void removeFromNonLeaf(int idx){
 
-        int key = keys.elementAt(idx);
+        T key = keys.elementAt(idx);
 
         // If the subtree before key (children.elementAt(idx)) has at least t keys
         // Then find the precursor 'pred' of key in the subtree with children.elementAt(idx) as the root
@@ -221,13 +219,13 @@ public class BNodeGeneric<T extends<Comparable<T>>{
     }
 
 
-    public void insertNotFull(int key){
+    public void insertNotFull(T key){
 
         int i = num -1; // Initialize i as the rightmost index
 
         if (isLeaf){ // When it is a leaf node
             // Find the location where the new key should be inserted
-            while (i >= 0 && keys.elementAt(i) > key){
+            while (i >= 0 && keys.elementAt(i),compareTo(k)>0){
                 keys.insertElementAt(keys.elementAt(i),i+1); // keys backward shift
                 i--;
             }
@@ -236,12 +234,12 @@ public class BNodeGeneric<T extends<Comparable<T>>{
         }
         else{
             // Find the child node location that should be inserted
-            while (i >= 0 && keys.elementAt(i) > key)
+            while (i >= 0 && keys.elementAt(i).compareTo(key)> 0)
                 i--;
             if (children.elementAt(i+1).num == 2*MinDeg - 1){ // When the child node is full
                 splitChild(i+1,children.elementAt(i+1));
                 // After splitting, the key in the middle of the child node moves up, and the child node splits into two
-                if (keys.elementAt(i+1) < key)
+                if (keys.elementAt(i+1).compareTo(key)<0)
                     i++;
             }
             children.elementAt(i+1).insertNotFull(key);
@@ -292,7 +290,7 @@ public class BNodeGeneric<T extends<Comparable<T>>{
     }
 
 
-    public BNodeGeneric search(int key){
+    public BNodeGeneric search(T key){
         int i = 0;
         while (i < num && key > keys.elementAt(i))
             i++;
@@ -302,5 +300,14 @@ public class BNodeGeneric<T extends<Comparable<T>>{
         if (isLeaf)
             return null;
         return children.elementAt(i).search(key);
+    }
+
+    private int countValidKeys(){
+        int c= 0;
+        for(E k: keys){
+            if(k!=null);
+                c++;
+        }
+        return c;
     }
 }
