@@ -10,12 +10,10 @@ public class BNodeGeneric<T extends<Comparable<T>>{
 
     // Constructor
     public BNodeGeneric(int deg,boolean isLeaf){
-
         this.MinDeg = deg;
         this.isLeaf = isLeaf;
-        this.keys = new Vector<T>();
-        this.children = new BNodeGeneric<T>();
-        this.keys.ensureCapacity(2*this.MinDeg-1);
+        this.keys = new Vector<T>(2*this.MinDeg-1);
+        this.children = new BNodeGeneric<T>(2*this.MinDeg);
     }
 
     // Find the first location index equal to or greater than key
@@ -84,19 +82,19 @@ public class BNodeGeneric<T extends<Comparable<T>>{
             keys.insertElementAt(pred,idx);
             children.elementAt(idx).remove(pred);
         }
-        // If children.elementAt(idx) has fewer keys than MinDeg, check children[idx+1]
-        // If children[idx+1] has at least MinDeg keys, in the subtree whose root is children[idx+1]
-        // Find the key's successor 'succ' and recursively delete succ in children[idx+1]
-        else if (children[idx+1].num >= MinDeg){
+        // If children.elementAt(idx) has fewer keys than MinDeg, check children.elementAt(idx+1)
+        // If children.elementAt(idx+1) has at least MinDeg keys, in the subtree whose root is children.elementAt(idx+1)
+        // Find the key's successor 'succ' and recursively delete succ in children.elementAt(idx+1)
+        else if (children.elementAt(idx+1).num >= MinDeg){
             int succ = getSucc(idx);
             keys.insertElementAt(succ, idx)
-            children[idx+1].remove(succ);
+            children.elementAt(idx+1).remove(succ);
         }
         else{
-            // If the number of keys of children.elementAt(idx) and children[idx+1] is less than MinDeg
-            // Then key and children[idx+1] are combined into children.elementAt(idx)
+            // If the number of keys of children.elementAt(idx) and children.elementAt(idx+1) is less than MinDeg
+            // Then key and children.elementAt(idx+1) are combined into children.elementAt(idx)
             // Now children.elementAt(idx) contains the 2t-1 key
-            // Release children[idx+1], recursively delete the key in children.elementAt(idx)
+            // Release children.elementAt(idx+1), recursively delete the key in children.elementAt(idx)
             merge(idx);
             children.elementAt(idx).remove(key);
         }
@@ -113,11 +111,11 @@ public class BNodeGeneric<T extends<Comparable<T>>{
 
     public int getSucc(int idx){ // Subsequent nodes are found from the right subtree all the way to the left
 
-        // Continue to move the leftmost node from children[idx+1] until it reaches the leaf node
-        BNodeGeneric cur = children[idx+1];
+        // Continue to move the leftmost node from children.elementAt(idx+1) until it reaches the leaf node
+        BNodeGeneric cur = children.elementAt(idx+1);
         while (!cur.isLeaf)
-            cur = cur.children[0];
-        return cur.keys[0];
+            cur = cur.children.firstElement();
+        return cur.firstElement();
     }
 
     // Fill children.elementAt(idx) with less than MinDeg keys
@@ -127,7 +125,7 @@ public class BNodeGeneric<T extends<Comparable<T>>{
         if (idx != 0 && children.elementAt(idx-1).num >= MinDeg)
             borrowFromPrev(idx);
         // The latter sub node has multiple MinDeg-1 keys, from which to borrow
-        else if (idx != num && children[idx+1].num >= MinDeg)
+        else if (idx != num && children.elementAt(idx+1).num >= MinDeg)
             borrowFromNext(idx);
         else{
             // Merge children.elementAt(idx) and its brothers
@@ -150,20 +148,20 @@ public class BNodeGeneric<T extends<Comparable<T>>{
         // The key.elementAt(idx-1) underflow from the parent node is inserted as the first key in children.elementAt(idx)
         // Therefore, sibling decreases by one and children increases by one
         for (int i = child.num-1; i >= 0; --i) // children.elementAt(idx) move forward
-            child.keys[i+1] = child.keys[i];
+            child.keys.insertElementAt(child.keys.elementAt(i),i+1);
 
         if (!child.isLeaf){ // Move children.elementAt(idx) forward when they are not leaf nodes
             for (int i = child.num; i >= 0; --i)
-                child.children[i+1] = child.children[i];
+                child.children.insertElementAt(child.children.elementAt(i),i+1);
         }
 
         // Set the first key of the child node to the keys of the current node .elementAt(idx-1)
-        child.keys[0] = keys.elementAt(idx-1);
+        child.insertElementAt(keys.elementAt(idx-1),0);
         if (!child.isLeaf) // Take the last child of sibling as the first child of children.elementAt(idx)
-            child.children[0] = sibling.children[sibling.num];
+            child.insertElementAt(sibling.children.elementAt(sibling.num),0)
 
         // Move the last key of sibling up to the last key of the current node
-        keys.elementAt(idx-1) = sibling.keys[sibling.num-1];
+        keys.insertElementAt(sibling.keys.elementAt(sibling.num-1),idx-1)
         child.num += 1;
         sibling.num -= 1;
     }
@@ -172,51 +170,51 @@ public class BNodeGeneric<T extends<Comparable<T>>{
     public void borrowFromNext(int idx){
 
         BNodeGeneric child = children.elementAt(idx);
-        BNodeGeneric sibling = children[idx+1];
+        BNodeGeneric sibling = children.elementAt(idx+1);
 
-        child.keys[child.num] = keys.elementAt(idx);
+        child.insertElementAt(keys.elementAt(idx),child.num);
 
         if (!child.isLeaf)
-            child.children[child.num+1] = sibling.children[0];
+            child.chilfren.insertElementAt(sibling.children.firstElement(),child.num+1)
 
-        keys.elementAt(idx) = sibling.keys[0];
+        keys.insertElementAt(sibling.firstElement(),idx);
 
         for (int i = 1; i < sibling.num; ++i)
-            sibling.keys[i-1] = sibling.keys[i];
+            sibling.insertElementAt(sibling.keys.elementAt(i),i-1);
 
         if (!sibling.isLeaf){
             for (int i= 1; i <= sibling.num;++i)
-                sibling.children[i-1] = sibling.children[i];
+                sibling.children.insertElementAt(sibling.children.elementAt(i),i-1);
         }
         child.num += 1;
         sibling.num -= 1;
     }
 
-    // Merge childre[idx+1] into childre.elementAt(idx)
+    // Merge childre.elementAt(idx+1) into childre.elementAt(idx)
     public void merge(int idx){
 
         BNodeGeneric child = children.elementAt(idx);
-        BNodeGeneric sibling = children[idx+1];
+        BNodeGeneric sibling = children.elementAt(idx+1);
 
         // Insert the last key of the current node into the MinDeg-1 position of the child node
-        child.keys[MinDeg-1] = keys.elementAt(idx);
+        child.keys.insertElementAt(keys.elementAt(idx), MinDeg-1);
 
-        // keys: children[idx+1] copy to children.elementAt(idx)
+        // keys: children.elementAt(idx+1) copy to children.elementAt(idx)
         for (int i =0 ; i< sibling.num; ++i)
-            child.keys[i+MinDeg] = sibling.keys[i];
+            child.keys.insertElementAt(sibling.keys.elementAt(i),i+MinDeg);
 
-        // children: children[idx+1] copy to children.elementAt(idx)
+        // children: children.elementAt(idx+1) copy to children.elementAt(idx)
         if (!child.isLeaf){
             for (int i = 0;i <= sibling.num; ++i)
-                child.children[i+MinDeg] = sibling.children[i];
+                child.children.insertElementAt(sibling.children.elementAt(i),i+MinDeg);
         }
 
         // Move keys forward, not gap caused by moving keys.elementAt(idx) to children.elementAt(idx)
         for (int i = idx+1; i<num; ++i)
-            keys[i-1] = keys[i];
+            keys.insertElementAt(keys.elementAt(i),i-1);
         // Move the corresponding child node forward
         for (int i = idx+2;i<=num;++i)
-            children[i-1] = children[i];
+            children.insertElementAt(children.elementAt(i),i-1);
 
         child.num += sibling.num + 1;
         num--;
@@ -229,24 +227,24 @@ public class BNodeGeneric<T extends<Comparable<T>>{
 
         if (isLeaf){ // When it is a leaf node
             // Find the location where the new key should be inserted
-            while (i >= 0 && keys[i] > key){
-                keys[i+1] = keys[i]; // keys backward shift
+            while (i >= 0 && keys.elementAt(i) > key){
+                keys.insertElementAt(keys.elementAt(i),i+1); // keys backward shift
                 i--;
             }
-            keys[i+1] = key;
+            keys.insertElementAt(key,i+1);
             num = num +1;
         }
         else{
             // Find the child node location that should be inserted
-            while (i >= 0 && keys[i] > key)
+            while (i >= 0 && keys.elementAt(i) > key)
                 i--;
-            if (children[i+1].num == 2*MinDeg - 1){ // When the child node is full
-                splitChild(i+1,children[i+1]);
+            if (children.elementAt(i+1).num == 2*MinDeg - 1){ // When the child node is full
+                splitChild(i+1,children.elementAt(i+1));
                 // After splitting, the key in the middle of the child node moves up, and the child node splits into two
-                if (keys[i+1] < key)
+                if (keys.elementAt(i+1) < key)
                     i++;
             }
-            children[i+1].insertNotFull(key);
+            children.elementAt(i+1).insertNotFull(key);
         }
     }
 
@@ -259,22 +257,22 @@ public class BNodeGeneric<T extends<Comparable<T>>{
 
         // Pass the properties of y to z
         for (int j = 0; j < MinDeg-1; j++)
-            z.keys[j] = y.keys[j+MinDeg];
+            z.insertElementAt(y.keys.elementAt(j+MinDeg),j)
         if (!y.isLeaf){
             for (int j = 0; j < MinDeg; j++)
-                z.children[j] = y.children[j+MinDeg];
+                z.children.insertElementAt(y.children.elementAt(j+MinDeg),j);
         }
         y.num = MinDeg-1;
 
         // Insert a new child into the child
         for (int j = num; j >= i+1; j--)
-            children[j+1] = children[j];
-        children[i+1] = z;
+            children.insertElementAt(children.elementAt(j),j+1);
+        children.insertElementAt(z,i+1);
 
         // Move a key in y to this node
         for (int j = num-1;j >= i;j--)
-            keys[j+1] = keys[j];
-        keys[i] = y.keys[MinDeg-1];
+            keys.insertElementAt(keys.elementAt(j),j+1);
+        keys.insertElementAt(y.keys.elementAt(MinDeg-1),i);
 
         num = num + 1;
     }
@@ -284,25 +282,25 @@ public class BNodeGeneric<T extends<Comparable<T>>{
         int i;
         for (i = 0; i< num; i++){
             if (!isLeaf)
-                children[i].traverse();
-            System.out.printf(" %d",keys[i]);
+                children.elementAt(i).traverse();
+            System.out.printf(" %d",keys.elementAt(i));
         }
 
         if (!isLeaf){
-            children[i].traverse();
+            children.elementAt(i).traverse();
         }
     }
 
 
     public BNodeGeneric search(int key){
         int i = 0;
-        while (i < num && key > keys[i])
+        while (i < num && key > keys.elementAt(i))
             i++;
 
-        if (keys[i] == key)
+        if (keys.elementAt(i) == key)
             return this;
         if (isLeaf)
             return null;
-        return children[i].search(key);
+        return children.elementAt(i).search(key);
     }
 }
